@@ -1,0 +1,4 @@
+env: "local"
+db_url: "postgres://user:pass@localhost:5432/nba_db?sslmode=disable"
+gin_mode: "debug"
+scrape_interval: "5m"
