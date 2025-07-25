@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// go run cmd/scraper/main.go game
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatal("Usage: go run cmd/scraper/main.go [team|player|schedule|...]")

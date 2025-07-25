@@ -5,8 +5,6 @@ import (
 	"log"
 	"math/rand"
 	"nba-predictor/internal/models"
-	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -17,16 +15,21 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// to scraper
+// https://www.espn.com/nba/schedule/_/date/20220111 and https://www.espn.com/nba/game/_/gameId/401360426/bucks-hornets
+// for the basic game data, e.g. scroe, date, q1-q4 score, referees
 func ScrapeGameData(db *gorm.DB) {
 	fmt.Println("Start scraping game data...")
 
-	// config
+	// 1396, 1406 -> 16 - 17
+
+	// configs
 	maxWorkers := 6
-	start := time.Date(2008, 9, 24, 0, 0, 0, 0, time.UTC)
-	end := time.Date(2009, 6, 20, 0, 0, 0, 0, time.UTC)
+	start := time.Date(2022, 1, 11, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2022, 1, 13, 0, 0, 0, 0, time.UTC)
 	// start := time.Date(2017, 4, 14, 0, 0, 0, 0, time.UTC)
 	// end := time.Date(2017, 6, 20, 0, 0, 0, 0, time.UTC)
-	season := "2008-2009"
+	season := fmt.Sprintf("%d-%d", start.Year(), end.Year())
 
 	sem := make(chan struct{}, maxWorkers)
 	var wg sync.WaitGroup
@@ -48,14 +51,8 @@ func ScrapeGameData(db *gorm.DB) {
 	}
 	wg.Wait()
 
-	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
-
-	}
-
 	fmt.Println("failedScraperGameID:", failedScraperGameID)
 	fmt.Println("End scraping game data... total data: ", count)
-	// }
-	// ----------------------------------------------------------------------------------------
 }
 
 func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGameID *[]string, count *int64) {
@@ -67,6 +64,7 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 	dateDoc.Find("table.Table").First().Find("tbody.Table__TBODY").Find("tr.Table__TR").Each(func(i int, s *goquery.Selection) {
 		// s := doc.Find("table.Table").First().Find("tbody.Table__TBODY").Find("tr.Table__TR").First()
 
+		// get game ID
 		aTag := s.Find("td.teams__col").Find("a")
 
 		if aTag.Text() == "Postponed" {
@@ -84,6 +82,7 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		gamePath = fmt.Sprintf("https://www.espn.com%s", gamePath)
 		doc := getPageDoc(gamePath)
 
+		// get game type
 		gtype := "regular"
 		gNote := doc.Find("div.ScoreCell__GameNote").Text()
 		if gNote != "" && gNote == "Preseason" {
@@ -93,7 +92,7 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 			gtype = "postseason"
 		}
 
-		// if note
+		// get team ID
 		ah, _ := doc.Find(".Gamestrip__Team").First().Find("a").Attr("href")
 		hh, _ := doc.Find(".Gamestrip__Team").Last().Find("a").Attr("href")
 		if ah == "" || hh == "" {
@@ -104,14 +103,13 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		awayID := strings.Split(ah, "/")[5]
 		homeID := strings.Split(hh, "/")[5]
 
+		// get game score
 		as := doc.Find(".Gamestrip__Overview").Find(".Table__TBODY").Find(".Table__TR").First()
 		aQ1S := as.Find("td").Eq(1).Text()
 		aQ2S := as.Find("td").Eq(2).Text()
 		aQ3S := as.Find("td").Eq(3).Text()
 		aQ4S := as.Find("td").Eq(4).Text()
 		aFinanS := as.Find("td").Eq(5).Text()
-
-		// fmt.Println(aQ1S, aQ2S, aQ3S, aQ4S, aFinanS)
 
 		hs := doc.Find(".Gamestrip__Overview").Find(".Table__TBODY").Find(".Table__TR").Last()
 		hQ1S := hs.Find("td").Eq(1).Text()
@@ -120,18 +118,11 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		hQ4S := hs.Find("td").Eq(4).Text()
 		hFinanS := hs.Find("td").Eq(5).Text()
 
-		// fmt.Println(hQ1S, hQ2S, hQ3S, hQ4S, hFinanS)
-
+		// get game info, e.g. time, referee, location
 		t := doc.Find(".GameInfo__Meta").Find("span").First().Text()
-		// gameT := strings.Split(t, ", ")
-		// gTime := gameT[0]
-		// season := strconv.Itoa(d.Year())
 		dateTime, _ := time.Parse("3:04 PM, January 2, 2006", t)
 
-		// fmt.Println(gTime, dateTime)
-
 		area := doc.Find(".Location__Text").Text()
-		// fmt.Println(area)
 
 		referees := ""
 		doc.Find(".GameInfo__List__Wrapper").Find("li").Each(func(i int, s *goquery.Selection) {
@@ -146,8 +137,8 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 				referees += ", " + r
 			}
 		})
-		// fmt.Println(referees)
 
+		// build model
 		g := models.Game{
 			ESPNID:       gameID,
 			StartTime:    dateTime,
@@ -170,9 +161,6 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 			WinnerTeamID: homeID,
 		}
 
-		// strconv.atoi()
-		// fmt.Println(g)
-
 		result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&g)
 		if result.Error != nil {
 			log.Printf("Failed to insert %s: %v\n", gameID, result.Error)
@@ -184,44 +172,8 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		}
 
 		dcount += 1
-
-		// time.Sleep(10 * time.Second)
 	})
 
 	fmt.Println("data count of date: ", d.Format("20060102"), " count: ", dcount)
 	fmt.Println("----------------------------------------")
 }
-
-func getPageDoc(path string) *goquery.Document {
-	url := fmt.Sprintf(path)
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return doc
-}
-
-func stringToInt(s string) int {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		log.Printf("failed to convert '%s': %v", s, err)
-		return -1
-	}
-
-	return i
-}
-
-// 1396, 1406 -> 16 - 17
