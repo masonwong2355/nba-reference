@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -30,7 +31,7 @@ func ScrapeGameData(db *gorm.DB) {
 	sem := make(chan struct{}, maxWorkers)
 	var wg sync.WaitGroup
 
-	count := 0
+	var count int64
 
 	failedScraperGameID := []string{}
 
@@ -41,7 +42,7 @@ func ScrapeGameData(db *gorm.DB) {
 		go func(day time.Time) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			scrapeGamesForDate(db, season, day, &failedScraperGameID)
+			scrapeGamesForDate(db, season, day, &failedScraperGameID, &count)
 			time.Sleep(time.Millisecond * time.Duration(200+rand.Intn(600)))
 		}(d)
 	}
@@ -57,7 +58,7 @@ func ScrapeGameData(db *gorm.DB) {
 	// ----------------------------------------------------------------------------------------
 }
 
-func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGameID *[]string) {
+func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGameID *[]string, count *int64) {
 	dcount := 0
 
 	datePath := fmt.Sprintf("https://www.espn.com/nba/schedule/_/date/%s", d.Format("20060102"))
@@ -177,6 +178,9 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 			log.Printf("Failed to insert %s: %v\n", gameID, result.Error)
 		} else {
 			fmt.Println("Inserted:", gameID)
+			if result.RowsAffected > 0 {
+				atomic.AddInt64(count, 1)
+			}
 		}
 
 		dcount += 1
