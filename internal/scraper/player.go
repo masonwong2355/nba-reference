@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"nba-predictor/internal/models"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -30,29 +29,12 @@ func ScrapePlayerData(db *gorm.DB) {
 
 	for _, teamID := range teamIDs {
 		url := fmt.Sprintf("https://www.espn.com/nba/team/stats/_/name/%s/season/2025/seasontype/2/split/33", teamID)
-		req, _ := http.NewRequest("GET", url, nil)
-		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer res.Body.Close()
-
-		if res.StatusCode != 200 {
-			log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-		}
-
-		doc, err := goquery.NewDocumentFromReader(res.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
+		doc := getPageDoc(url)
 
 		// ----------------------------------------------------------------------------------------
 		count := 0
 		espnID, name, linkName, playerUrl := "", "", "", ""
 		doc.Find("tbody.Table__TBODY").First().Find("a.AnchorLink").Each(func(i int, s *goquery.Selection) {
-			// s := doc.Find("tbody.Table__TBODY").Find("a.AnchorLink").First()
-
 			name = s.Text()
 
 			href, ok := s.Attr("href")
@@ -63,23 +45,7 @@ func ScrapePlayerData(db *gorm.DB) {
 			}
 
 			playerUrl = fmt.Sprintf("https://www.espn.com/nba/player/bio/_/id/%s/%s", espnID, linkName)
-
-			req, _ = http.NewRequest("GET", playerUrl, nil)
-			req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
-			res, err = http.DefaultClient.Do(req)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer res.Body.Close()
-
-			if res.StatusCode != 200 {
-				log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
-			}
-
-			playerDoc, err := goquery.NewDocumentFromReader(res.Body)
-			if err != nil {
-				log.Fatal(err)
-			}
+			playerDoc := getPageDoc(playerUrl)
 
 			// team := ""
 			// if h, ok := playerDoc.Find("ul.PlayerHeader__Team_Info").Find("a.AnchorLink").Attr("href"); ok {
@@ -146,12 +112,6 @@ func ScrapePlayerData(db *gorm.DB) {
 				Experience:   experience,
 			}
 
-			// fmt.Println(playerUrl, espnID, name, team)
-			// fmt.Println(jerseyNumber)
-			// fmt.Println(position)
-			// fmt.Println(heightVal)
-			// fmt.Println(weightInt)
-			// fmt.Println(player)
 			result := db.Create(&player)
 			if result.Error != nil {
 				log.Printf("Failed to insert %s: %v\n", name, result.Error)
