@@ -2,12 +2,12 @@ package scraper
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/rs/zerolog/log"
 )
 
 func getPageDoc(path string) *goquery.Document {
@@ -16,17 +16,17 @@ func getPageDoc(path string) *goquery.Document {
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible)")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("request failed")
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		log.Fatalf("status code error: %d %s", res.StatusCode, res.Status)
+		log.Fatal().Int("code", res.StatusCode).Str("status", res.Status).Msg("status code error")
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("failed to parse document")
 	}
 
 	return doc
@@ -35,7 +35,7 @@ func getPageDoc(path string) *goquery.Document {
 func stringToInt(s string) int {
 	i, err := strconv.Atoi(s)
 	if err != nil {
-		log.Printf("failed to convert '%s': %v", s, err)
+		log.Error().Err(err).Str("value", s).Msg("failed to convert")
 		return -1
 	}
 
@@ -45,7 +45,7 @@ func stringToInt(s string) int {
 func parseMadeAttempt(s string) (int, int) {
 	parts := strings.Split(s, "-")
 	if len(parts) != 2 {
-		log.Printf("unexpected made/attempt value: %q", s)
+		log.Error().Str("value", s).Msg("unexpected made/attempt value")
 		return 0, 0
 	}
 

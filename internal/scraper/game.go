@@ -2,13 +2,14 @@ package scraper
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"nba-predictor/internal/models"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/PuerkitoBio/goquery"
 	"gorm.io/gorm"
@@ -19,7 +20,7 @@ import (
 // https://www.espn.com/nba/schedule/_/date/20220111 and https://www.espn.com/nba/game/_/gameId/401360426/bucks-hornets
 // for the basic game data, e.g. scroe, date, q1-q4 score, referees
 func ScrapeGameData(db *gorm.DB) {
-	fmt.Println("Start scraping game data...")
+	log.Info().Msg("Start scraping game data")
 
 	// 1396, 1406 -> 16 - 17
 
@@ -52,8 +53,10 @@ func ScrapeGameData(db *gorm.DB) {
 	}
 	wg.Wait()
 
-	fmt.Println("failedScraperGameID:", failedScraperGameID)
-	fmt.Println("End scraping game data... total data: ", count)
+	if len(failedScraperGameID) > 0 {
+		log.Info().Strs("failedScraperGameID", failedScraperGameID).Msg("some games failed to scrape")
+	}
+	log.Info().Int64("total", count).Msg("End scraping game data")
 }
 
 func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGameID *[]string, count *int64, failedMu *sync.Mutex) {
@@ -179,9 +182,9 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 
 		result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&g)
 		if result.Error != nil {
-			log.Printf("Failed to insert %s: %v\n", gameID, result.Error)
+			log.Error().Err(result.Error).Str("gameID", gameID).Msg("Failed to insert")
 		} else {
-			fmt.Println("Inserted:", gameID)
+			log.Info().Str("gameID", gameID).Msg("Inserted game")
 			if result.RowsAffected > 0 {
 				atomic.AddInt64(count, 1)
 			}
@@ -189,7 +192,7 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 
 		// boxscore part
 		boxPath := fmt.Sprintf("https://www.espn.com/nba/boxscore/_/gameId/%s", gameID)
-		fmt.Println(boxPath)
+		log.Info().Str("boxPath", boxPath).Msg("Fetching boxscore")
 		boxDoc := getPageDoc(boxPath)
 
 		boxDoc.Find("div.Boxscore").Find(".Wrapper").Each(func(bi int, box *goquery.Selection) {
@@ -251,9 +254,9 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 
 				result := db.Create(&ps)
 				if result.Error != nil {
-					log.Printf("Failed to insert %s stats: %v\n", playerID, result.Error)
+					log.Error().Err(result.Error).Str("playerID", playerID).Msg("Failed to insert stats")
 				} else {
-					fmt.Println("Inserted stats:", playerID)
+					log.Info().Str("playerID", playerID).Msg("Inserted stats")
 				}
 			})
 		})
@@ -261,6 +264,6 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		dcount += 1
 	})
 
-	fmt.Println("data count of date: ", d.Format("20060102"), " count: ", dcount)
-	fmt.Println("----------------------------------------")
+	log.Info().Str("date", d.Format("20060102")).Int("count", dcount).Msg("data count of date")
+	log.Info().Msg("----------------------------------------")
 }
