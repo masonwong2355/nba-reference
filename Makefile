@@ -29,6 +29,8 @@ lint:
 
 DB_URL="postgres://postgres:password@localhost:5432/nba_dev?sslmode=disable"
 
+# migrate -database "postgres://postgres:password@localhost:5432/nba_dev?sslmode=disable" -path ./database/migrations force 20250725120718
+
 migrate-up:
 	migrate -database "$(DB_URL)" -path ./database/migrations/ up
 
