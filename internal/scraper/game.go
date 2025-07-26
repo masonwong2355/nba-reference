@@ -37,6 +37,7 @@ func ScrapeGameData(db *gorm.DB) {
 	var count int64
 
 	failedScraperGameID := []string{}
+	var failedMu sync.Mutex
 
 	for d := start; !d.After(end); d = d.AddDate(0, 0, 1) {
 		d := d
@@ -45,7 +46,7 @@ func ScrapeGameData(db *gorm.DB) {
 		go func(day time.Time) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			scrapeGamesForDate(db, season, day, &failedScraperGameID, &count)
+			scrapeGamesForDate(db, season, day, &failedScraperGameID, &count, &failedMu)
 			time.Sleep(time.Millisecond * time.Duration(200+rand.Intn(600)))
 		}(d)
 	}
@@ -55,7 +56,7 @@ func ScrapeGameData(db *gorm.DB) {
 	fmt.Println("End scraping game data... total data: ", count)
 }
 
-func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGameID *[]string, count *int64) {
+func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGameID *[]string, count *int64, failedMu *sync.Mutex) {
 	dcount := 0
 
 	datePath := fmt.Sprintf("https://www.espn.com/nba/schedule/_/date/%s", d.Format("20060102"))
@@ -68,13 +69,17 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		aTag := s.Find("td.teams__col").Find("a")
 
 		if aTag.Text() == "Postponed" {
+			failedMu.Lock()
 			*failedScraperGameID = append(*failedScraperGameID, datePath)
+			failedMu.Unlock()
 			return
 		}
 		gamePath, _ := aTag.Attr("href")
 		paths := strings.Split(gamePath, "/")
 		if len(paths) == 1 {
+			failedMu.Lock()
 			*failedScraperGameID = append(*failedScraperGameID, gamePath)
+			failedMu.Unlock()
 			return
 		}
 		gameID := paths[5]
@@ -96,7 +101,9 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		ah, _ := doc.Find(".Gamestrip__Team").First().Find("a").Attr("href")
 		hh, _ := doc.Find(".Gamestrip__Team").Last().Find("a").Attr("href")
 		if ah == "" || hh == "" {
+			failedMu.Lock()
 			*failedScraperGameID = append(*failedScraperGameID, gameID)
+			failedMu.Unlock()
 			return
 		}
 
