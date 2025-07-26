@@ -62,7 +62,7 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 	dateDoc := getPageDoc(datePath)
 
 	dateDoc.Find("table.Table").First().Find("tbody.Table__TBODY").Find("tr.Table__TR").Each(func(i int, s *goquery.Selection) {
-		// s := doc.Find("table.Table").First().Find("tbody.Table__TBODY").Find("tr.Table__TR").First()
+		// s := dateDoc.Find("table.Table").First().Find("tbody.Table__TBODY").Find("tr.Table__TR").First()
 
 		// get game ID
 		aTag := s.Find("td.teams__col").Find("a")
@@ -170,6 +170,80 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 				atomic.AddInt64(count, 1)
 			}
 		}
+
+		// boxscore part
+		boxPath := fmt.Sprintf("https://www.espn.com/nba/boxscore/_/gameId/%s", gameID)
+		fmt.Println(boxPath)
+		boxDoc := getPageDoc(boxPath)
+
+		boxDoc.Find("div.Boxscore").Find(".Wrapper").Each(func(bi int, box *goquery.Selection) {
+			box.Find("div.Table__Scroller").Find("table.Table--align-right").Find("tr").Each(func(i int, s *goquery.Selection) {
+
+				// get player id
+				playerS := box.Find("table.Table--fixed-left.Table--align-right").Find("tr").Eq(i)
+				if playerS.Text() == "starters" || playerS.Text() == "bench" || playerS.Text() == "team" || playerS.Text() == "" {
+					return
+				}
+				ap, _ := playerS.Find("a.AnchorLink").Attr("href")
+				playerID := strings.Split(ap, "/")[7]
+
+				if strings.Contains(s.Find("td").First().Text(), "DNP") || s.Find("td").First().Text() == "" {
+					return
+				}
+
+				// get data
+				min := s.Find("td").Eq(0).Text()
+				fg_made := strings.Split(s.Find("td").Eq(1).Text(), "-")[0]
+				fg_att := strings.Split(s.Find("td").Eq(1).Text(), "-")[1]
+				threept_made := strings.Split(s.Find("td").Eq(2).Text(), "-")[0]
+				threept_att := strings.Split(s.Find("td").Eq(2).Text(), "-")[1]
+				ft_made := strings.Split(s.Find("td").Eq(3).Text(), "-")[0]
+				ft_att := strings.Split(s.Find("td").Eq(3).Text(), "-")[1]
+				oreb := s.Find("td").Eq(4).Text()
+				dreb := s.Find("td").Eq(5).Text()
+				reb := s.Find("td").Eq(6).Text()
+				ast := s.Find("td").Eq(7).Text()
+				stl := s.Find("td").Eq(8).Text()
+				blk := s.Find("td").Eq(9).Text()
+				turnover := s.Find("td").Eq(10).Text()
+				pf := s.Find("td").Eq(11).Text()
+				pts := s.Find("td").Eq(13).Text()
+
+				teamID := awayID
+				if bi == 1 {
+					teamID = homeID
+				}
+
+				ps := models.PlayerStats{
+					GameEspnID:   gameID,
+					PlayerEspnID: playerID,
+					TeamEspnID:   teamID,
+					Min:          stringToInt(min),
+					FGMade:       stringToInt(fg_made),
+					FGAtt:        stringToInt(fg_att),
+					ThreeptMade:  stringToInt(threept_made),
+					ThreeptAtt:   stringToInt(threept_att),
+					FtMade:       stringToInt(ft_made),
+					FtAtt:        stringToInt(ft_att),
+					Oreb:         stringToInt(oreb),
+					Dreb:         stringToInt(dreb),
+					Reb:          stringToInt(reb),
+					Ast:          stringToInt(ast),
+					Stl:          stringToInt(stl),
+					Blk:          stringToInt(blk),
+					Turnover:     stringToInt(turnover),
+					Pf:           stringToInt(pf),
+					Pts:          stringToInt(pts),
+				}
+
+				result := db.Create(&ps)
+				if result.Error != nil {
+					log.Printf("Failed to insert %s stats: %v\n", playerID, result.Error)
+				} else {
+					fmt.Println("Inserted stats:", playerID)
+				}
+			})
+		})
 
 		dcount += 1
 	})
