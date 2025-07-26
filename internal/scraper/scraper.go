@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -39,4 +40,16 @@ func stringToInt(s string) int {
 	}
 
 	return i
+}
+
+func parseMadeAttempt(s string) (int, int) {
+	parts := strings.Split(s, "-")
+	if len(parts) != 2 {
+		log.Printf("unexpected made/attempt value: %q", s)
+		return 0, 0
+	}
+
+	made := stringToInt(strings.TrimSpace(parts[0]))
+	att := stringToInt(strings.TrimSpace(parts[1]))
+	return made, att
 }

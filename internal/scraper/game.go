@@ -193,12 +193,9 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 
 				// get data
 				min := s.Find("td").Eq(0).Text()
-				fg_made := strings.Split(s.Find("td").Eq(1).Text(), "-")[0]
-				fg_att := strings.Split(s.Find("td").Eq(1).Text(), "-")[1]
-				threept_made := strings.Split(s.Find("td").Eq(2).Text(), "-")[0]
-				threept_att := strings.Split(s.Find("td").Eq(2).Text(), "-")[1]
-				ft_made := strings.Split(s.Find("td").Eq(3).Text(), "-")[0]
-				ft_att := strings.Split(s.Find("td").Eq(3).Text(), "-")[1]
+				fg_made, fg_att := parseMadeAttempt(s.Find("td").Eq(1).Text())
+				threept_made, threept_att := parseMadeAttempt(s.Find("td").Eq(2).Text())
+				ft_made, ft_att := parseMadeAttempt(s.Find("td").Eq(3).Text())
 				oreb := s.Find("td").Eq(4).Text()
 				dreb := s.Find("td").Eq(5).Text()
 				reb := s.Find("td").Eq(6).Text()
@@ -219,12 +216,12 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 					PlayerEspnID: playerID,
 					TeamEspnID:   teamID,
 					Min:          stringToInt(min),
-					FGMade:       stringToInt(fg_made),
-					FGAtt:        stringToInt(fg_att),
-					ThreeptMade:  stringToInt(threept_made),
-					ThreeptAtt:   stringToInt(threept_att),
-					FtMade:       stringToInt(ft_made),
-					FtAtt:        stringToInt(ft_att),
+					FGMade:       fg_made,
+					FGAtt:        fg_att,
+					ThreeptMade:  threept_made,
+					ThreeptAtt:   threept_att,
+					FtMade:       ft_made,
+					FtAtt:        ft_att,
 					Oreb:         stringToInt(oreb),
 					Dreb:         stringToInt(dreb),
 					Reb:          stringToInt(reb),
