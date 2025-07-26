@@ -118,6 +118,15 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 		hQ4S := hs.Find("td").Eq(4).Text()
 		hFinanS := hs.Find("td").Eq(5).Text()
 
+		// convert scores to integers for later comparison
+		homeScore := stringToInt(hFinanS)
+		awayScore := stringToInt(aFinanS)
+
+		winnerTeamID := homeID
+		if homeScore < awayScore {
+			winnerTeamID = awayID
+		}
+
 		// get game info, e.g. time, referee, location
 		t := doc.Find(".GameInfo__Meta").Find("span").First().Text()
 		dateTime, _ := time.Parse("3:04 PM, January 2, 2006", t)
@@ -146,19 +155,19 @@ func scrapeGamesForDate(db *gorm.DB, season string, d time.Time, failedScraperGa
 			Type:         gtype,
 			HomeTeamID:   homeID,
 			AwayTeamID:   awayID,
-			HomeScore:    stringToInt(hFinanS),
+			HomeScore:    homeScore,
 			HomeQ1Score:  stringToInt(hQ1S),
 			HomeQ2Score:  stringToInt(hQ2S),
 			HomeQ3Score:  stringToInt(hQ3S),
 			HomeQ4Score:  stringToInt(hQ4S),
-			AwayScore:    stringToInt(aFinanS),
+			AwayScore:    awayScore,
 			AwayQ1Score:  stringToInt(aQ1S),
 			AwayQ2Score:  stringToInt(aQ2S),
 			AwayQ3Score:  stringToInt(aQ3S),
 			AwayQ4Score:  stringToInt(aQ4S),
 			Arena:        area,
 			Referees:     referees,
-			WinnerTeamID: homeID,
+			WinnerTeamID: winnerTeamID,
 		}
 
 		result := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&g)
