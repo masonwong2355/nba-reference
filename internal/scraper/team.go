@@ -2,16 +2,16 @@ package scraper
 
 import (
 	"fmt"
-	"log"
 	"nba-predictor/internal/models"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
 func ScrapeTeamData(db *gorm.DB) {
-	fmt.Println("Start scraping team data...")
+	log.Info().Msg("Start scraping team data")
 
 	url := "https://www.espn.com/nba/teams"
 	doc := getPageDoc(url)
@@ -33,11 +33,11 @@ func ScrapeTeamData(db *gorm.DB) {
 
 		result := db.Create(&team)
 		if result.Error != nil {
-			log.Printf("Failed to insert %s: %v\n", teamName, result.Error)
+			log.Error().Err(result.Error).Str("team", teamName).Msg("Failed to insert")
 		} else {
-			fmt.Println("Inserted:", teamName)
+			log.Info().Str("team", teamName).Msg("Inserted team")
 		}
 	})
 
-	fmt.Println("End scraping team data...")
+	log.Info().Msg("End scraping team data")
 }

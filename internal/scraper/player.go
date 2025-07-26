@@ -2,7 +2,6 @@ package scraper
 
 import (
 	"fmt"
-	"log"
 	"nba-predictor/internal/models"
 	"regexp"
 	"strconv"
@@ -10,16 +9,17 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
 func ScrapePlayerData(db *gorm.DB) {
-	fmt.Println("Start scraping player data...")
+	log.Info().Msg("Start scraping player data")
 
 	var teams []models.Team
 	err := db.Find(&teams).Error
 	if err != nil {
-		log.Fatal("Failed to get teams:", err)
+		log.Fatal().Err(err).Msg("Failed to get teams")
 	}
 
 	teamIDs := []string{}
@@ -114,14 +114,14 @@ func ScrapePlayerData(db *gorm.DB) {
 
 			result := db.Create(&player)
 			if result.Error != nil {
-				log.Printf("Failed to insert %s: %v\n", name, result.Error)
+				log.Error().Err(result.Error).Str("name", name).Msg("Failed to insert player")
 			} else {
-				fmt.Println("Inserted:", name)
+				log.Info().Str("name", name).Msg("Inserted player")
 			}
 
 			count += 1
 		})
-		fmt.Println("End scraping player data... total data: ", count)
+		log.Info().Int("count", count).Msg("End scraping player data")
 
 	}
 	// ----------------------------------------------------------------------------------------
