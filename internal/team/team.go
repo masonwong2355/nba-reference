@@ -1,8 +1,14 @@
 package team
 
-import "time"
+import (
+	"context"
+	"time"
+)
+
+// Hexagonal Architecture
 
 type Service interface {
+	GetTeam(ctx context.Context, parmas GetTeamPramas) (*[]Team, error)
 }
 
 type Team struct {
@@ -11,4 +17,8 @@ type Team struct {
 	Name      string    `gorm:"not null"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
+}
+
+type GetTeamPramas struct {
+	teamId string
 }
