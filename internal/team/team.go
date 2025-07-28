@@ -8,8 +8,7 @@ import (
 // Hexagonal Architecture
 
 type Service interface {
-	// GetTeams(ctx context.Context, params GetTeamParams) (*[]Team, error)
-	GetTeams(ctx context.Context) ([]Team, error)
+	GetTeams(ctx context.Context, params *GetTeamParams) ([]Team, error)
 }
 
 type Team struct {
@@ -20,6 +19,7 @@ type Team struct {
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }
 
-// type GetTeamParams struct {
-// 	teamID string
-// }
+type GetTeamParams struct {
+	TeamID string
+	Name   string
+}

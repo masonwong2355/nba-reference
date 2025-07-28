@@ -16,11 +16,6 @@ func New(repository repository.Repository) *Svc {
 	}
 }
 
-// func (s *Svc) GetTeam(ctx context.Context, parmas team.GetTeamParams) (*[]team.Team, error) {
-// 	return s.repository.GetTeams(ctx, nil)
-// }
-
-func (s *Svc) GetTeams(ctx context.Context) ([]team.Team, error) {
-	// return s.repository.GetTeams(ctx, nil)
-	return s.repository.GetTeams(ctx)
+func (s *Svc) GetTeams(ctx context.Context, params *team.GetTeamParams) ([]team.Team, error) {
+	return s.repository.GetTeams(ctx, params)
 }

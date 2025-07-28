@@ -9,7 +9,12 @@ import (
 
 func GetTeamsHandler(svc team.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		teams, err := svc.GetTeams(c.Request.Context())
+		params := &team.GetTeamParams{
+			TeamID: c.Query("teamID"),
+			Name:   c.Query("name"),
+		}
+
+		teams, err := svc.GetTeams(c.Request.Context(), params)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

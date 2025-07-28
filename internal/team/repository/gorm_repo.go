@@ -8,12 +8,7 @@ import (
 )
 
 type Repository interface {
-	// GetTeams(ctx context.Context, param *GetTeamParams) ([]team.Team, error)
-	GetTeams(ctx context.Context) ([]team.Team, error)
-}
-
-type GetTeamParams struct {
-	teamID string
+	GetTeams(ctx context.Context, params *team.GetTeamParams) ([]team.Team, error)
 }
 
 type GormRepository struct {
@@ -26,9 +21,20 @@ func New(db *gorm.DB) *GormRepository {
 	}
 }
 
-func (r *GormRepository) GetTeams(ctx context.Context) ([]team.Team, error) {
+func (r *GormRepository) GetTeams(ctx context.Context, params *team.GetTeamParams) ([]team.Team, error) {
 	var teams []team.Team
-	if err := r.db.WithContext(ctx).Find(&teams).Error; err != nil {
+
+	query := r.db.WithContext(ctx)
+	if params != nil {
+		if params.TeamID != "" {
+			query = query.Where("team_id = ?", params.TeamID)
+		}
+		if params.Name != "" {
+			query = query.Where("name = ?", params.Name)
+		}
+	}
+
+	if err := query.Find(&teams).Error; err != nil {
 		return nil, err
 	}
 	return teams, nil

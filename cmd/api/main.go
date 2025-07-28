@@ -26,7 +26,7 @@ func main() {
 	if env == "" {
 		env = "base"
 	}
-	cfg, err := config.LoadConfig("config/" + env + ".yaml")
+	cfg, err := config.LoadConfig("config/api/" + env + ".yaml")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load config")
 	}
