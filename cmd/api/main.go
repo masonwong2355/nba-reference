@@ -10,9 +10,14 @@ import (
 
 	"nba-reference/internal/api/config"
 	"nba-reference/internal/logger"
+	"nba-reference/internal/team/repository"
+	teamservice "nba-reference/internal/team/service"
+	teamtransport "nba-reference/internal/team/transport/rest/internalfacing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -35,6 +40,18 @@ func main() {
 
 	// 4. Set up Gin and HTTP server
 	router := gin.Default()
+
+	// Initialize database connection
+	dsn := "host=localhost user=postgres password=password dbname=nba_dev port=5432 sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect database")
+	}
+	// Create repository and service then register routes
+	repo := repository.New(db)
+	teamSvc := teamservice.New(repo)
+	teamtransport.AddRoutes(router, teamSvc)
+
 	srv := &http.Server{
 		Addr:    ":8080", // or cfg.Port
 		Handler: router,
