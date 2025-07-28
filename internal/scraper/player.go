@@ -3,6 +3,7 @@ package scraper
 import (
 	"fmt"
 	"nba-predictor/internal/models"
+	"nba-predictor/internal/team"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,7 +17,7 @@ import (
 func ScrapePlayerData(db *gorm.DB) {
 	log.Info().Msg("Start scraping player data")
 
-	var teams []models.Team
+	var teams []team.Team
 	err := db.Find(&teams).Error
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to get teams")

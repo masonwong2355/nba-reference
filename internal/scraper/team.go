@@ -1,8 +1,7 @@
 package scraper
 
 import (
-	"fmt"
-	"nba-predictor/internal/models"
+	"nba-predictor/internal/team"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -26,7 +25,7 @@ func ScrapeTeamData(db *gorm.DB) {
 			teamID = parts[len(parts)-2]
 		}
 
-		team := models.Team{
+		team := team.Team{
 			Name:   teamName,
 			TeamID: teamID,
 		}
