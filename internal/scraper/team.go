@@ -1,7 +1,7 @@
 package scraper
 
 import (
-	"nba-predictor/internal/team"
+	"nba-reference/internal/team"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"

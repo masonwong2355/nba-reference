@@ -2,8 +2,8 @@ package scraper
 
 import (
 	"fmt"
-	"nba-predictor/internal/models"
-	"nba-predictor/internal/team"
+	"nba-reference/internal/models"
+	"nba-reference/internal/team"
 	"regexp"
 	"strconv"
 	"strings"

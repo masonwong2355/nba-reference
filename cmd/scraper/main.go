@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"nba-predictor/internal/logger"
-	"nba-predictor/internal/scraper"
+	"nba-reference/internal/logger"
+	"nba-reference/internal/scraper"
 
 	"github.com/rs/zerolog/log"
 

@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"nba-predictor/internal/api/config"
-	"nba-predictor/internal/logger"
+	"nba-reference/internal/api/config"
+	"nba-reference/internal/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"

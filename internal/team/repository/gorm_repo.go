@@ -2,10 +2,10 @@ package repository
 
 import "context"
 
-type Repositroy interface {
-	getTeam(ctx context.Context, param *GetTeamPramas) error
+type Repository interface {
+	getTeam(ctx context.Context, param *GetTeamParams) error
 }
 
-type GetTeamPramas struct {
-	teamId string
+type GetTeamParams struct {
+	teamID string
 }

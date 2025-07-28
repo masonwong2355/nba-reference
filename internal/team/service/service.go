@@ -2,20 +2,20 @@ package service
 
 import (
 	"context"
-	"nba-predictor/internal/team"
-	"nba-predictor/internal/team/repository"
+	"nba-reference/internal/team"
+	"nba-reference/internal/team/repository"
 )
 
 type Svc struct {
-	repository repository.Repositroy
+	repository repository.Repository
 }
 
-func New(repository repository.Repositroy) *Svc {
+func New(repository repository.Repository) *Svc {
 	return &Svc{
 		repository: repository,
 	}
 }
 
-func GetTeam(ctx context.Context, parmas team.GetTeamPramas) (*[]team.Team, error) {
+func (s *Svc) GetTeam(ctx context.Context, parmas team.GetTeamParams) (*[]team.Team, error) {
 	return nil, nil
 }

@@ -1,4 +1,4 @@
-module nba-predictor
+module nba-reference
 
 go 1.24.3
 

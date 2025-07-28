@@ -3,7 +3,7 @@ package scraper
 import (
 	"fmt"
 	"math/rand"
-	"nba-predictor/internal/models"
+	"nba-reference/internal/models"
 	"strings"
 	"sync"
 	"sync/atomic"
