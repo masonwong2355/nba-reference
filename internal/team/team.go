@@ -9,7 +9,7 @@ import (
 
 type Service interface {
 	// GetTeams(ctx context.Context, params GetTeamParams) (*[]Team, error)
-	GetTeams(ctx context.Context) (*[]Team, error)
+	GetTeams(ctx context.Context) ([]Team, error)
 }
 
 type Team struct {

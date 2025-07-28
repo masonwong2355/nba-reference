@@ -8,7 +8,7 @@ import (
 )
 
 type Repository interface {
-	GetTeams(ctx context.Context, param *GetTeamParams) (*[]team.Team, error)
+	GetTeams(ctx context.Context, param *GetTeamParams) ([]team.Team, error)
 }
 
 type GetTeamParams struct {
